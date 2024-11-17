@@ -20,42 +20,46 @@ use Symfony\Component\HttpFoundation\Response;
 class ArticleController extends Controller
 {
     /**
-     * @OA\Get(
-     *     path="/api/articles",
-     *     tags={"Articles"},
-     *     summary="Fetch paginated articles",
-     *     @OA\Parameter(
-     *         name="keyword",
-     *         in="query",
-     *         description="Keyword to search in articles",
-     *         required=false,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="category",
-     *         in="query",
-     *         description="Filter articles by category",
-     *         required=false,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="source",
-     *         in="query",
-     *         description="Filter articles by source",
-     *         required=false,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Article"))
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized"
-     *     )
-     * )
-     */
+ * @OA\Get(
+ *     path="/api/articles",
+ *     tags={"Articles"},
+ *     summary="Fetch paginated articles",
+ *     @OA\Parameter(
+ *         name="keyword",
+ *         in="query",
+ *         description="Keyword to search in articles",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="category",
+ *         in="query",
+ *         description="Filter articles by category",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="source",
+ *         in="query",
+ *         description="Filter articles by source",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful operation",
+ *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Article"))
+ *     ),
+ *     @OA\Response(
+ *         response=429,
+ *         description="Too many requests"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     )
+ * )
+ */
     public function index(Request $request)
     {
         try {
