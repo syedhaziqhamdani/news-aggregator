@@ -6,9 +6,51 @@ use App\Models\Article;
 use Illuminate\Http\Request;
 use App\Http\Resources\ArticleCollection;
 
+/**
+ * @OA\Tag(
+ *     name="Articles",
+ *     description="API Endpoints for managing articles"
+ * )
+ */
 class ArticleController extends Controller
 {
-    //
+    /**
+     * @OA\Get(
+     *     path="/api/articles",
+     *     tags={"Articles"},
+     *     summary="Fetch paginated articles",
+     *     @OA\Parameter(
+     *         name="keyword",
+     *         in="query",
+     *         description="Keyword to search in articles",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="category",
+     *         in="query",
+     *         description="Filter articles by category",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="source",
+     *         in="query",
+     *         description="Filter articles by source",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Article"))
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
     public function index(Request $request)
     {
         $query = Article::query();
@@ -41,7 +83,34 @@ class ArticleController extends Controller
         // Wrap the response in the resource
         return new ArticleCollection($articles);
     }
-
+    /**
+     * @OA\Get(
+     *     path="/api/user/news-feed",
+     *     tags={"Articles"},
+     *     summary="Fetch personalized news feed for authenticated user",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="keyword",
+     *         in="query",
+     *         description="Keyword to search in articles",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Personalized news feed fetched successfully",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Article"))
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No preferences found"
+     *     )
+     * )
+     */
     public function personalizedFeed(Request $request)
     {
         $user = Auth::user();
@@ -76,7 +145,29 @@ class ArticleController extends Controller
 
         return response()->json($articles);
     }
-
+    /**
+     * @OA\Get(
+     *     path="/api/articles/{id}",
+     *     tags={"Articles"},
+     *     summary="Fetch details of a single article",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID of the article to retrieve",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(ref="#/components/schemas/Article")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Article not found"
+     *     )
+     * )
+     */
     public function show($id)
     {
         $article = Article::findOrFail($id);

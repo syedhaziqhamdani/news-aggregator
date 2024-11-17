@@ -14,4 +14,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('preferences', [PreferenceController::class, 'store']);
     Route::get('preferences', [PreferenceController::class, 'show']);
+    Route::get('/user/news-feed', [ArticleController::class, 'personalizedFeed']);
 });
