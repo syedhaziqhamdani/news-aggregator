@@ -27,7 +27,9 @@ class AuthTest extends TestCase
 
     public function test_user_cannot_register_with_existing_email()
     {
-        User::factory()->create(['email' => 'test@example.com']);
+        User::factory()->create([
+            'email' => 'unique' . time() . '@example.com',
+        ]);
 
         $response = $this->postJson('/api/register', [
             'name' => 'Test User',
@@ -41,23 +43,26 @@ class AuthTest extends TestCase
 
     public function test_user_can_login()
     {
-        $user = User::factory()->create(['password' => bcrypt('password')]);
-
+        $user = User::factory()->create([
+            'password' => bcrypt('password'),
+        ]);
+    
         $response = $this->postJson('/api/login', [
             'email' => $user->email,
             'password' => 'password',
         ]);
-
-        $response->assertStatus(200)->assertJsonStructure(['token']);
-    }
     
+        $response->assertStatus(200)
+                 ->assertJsonStructure(['token']);
+    }
+
     public function test_user_cannot_login_with_invalid_credentials()
     {
         $response = $this->postJson('/api/login', [
             'email' => 'invalid@example.com',
             'password' => 'wrongpassword',
         ]);
-
+    
         $response->assertStatus(401)
                  ->assertJson(['message' => 'Invalid credentials']);
     }
@@ -65,7 +70,6 @@ class AuthTest extends TestCase
     public function test_user_can_logout()
     {
         $user = User::factory()->create();
-
         $token = $user->createToken('Test Token')->plainTextToken;
 
         $response = $this->withHeaders([

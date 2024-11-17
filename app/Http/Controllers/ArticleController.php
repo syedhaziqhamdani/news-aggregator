@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use Illuminate\Http\Request;
+use App\Http\Resources\ArticleCollection;
 
 class ArticleController extends Controller
 {
@@ -24,8 +25,12 @@ class ArticleController extends Controller
             $query->where('source', $request->source);
         }
 
-        return response()->json($query->paginate(10));
+        $articles = $query->paginate(10);
+
+        // Wrap the response in the resource
+        return new ArticleCollection($articles);
     }
+
 
     public function show($id)
     {

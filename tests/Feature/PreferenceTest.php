@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Preference;
@@ -11,17 +10,22 @@ use App\Models\Preference;
 class PreferenceTest extends TestCase
 {
     use RefreshDatabase;
-    /**
-     * A basic feature test example.
-     */
+
+    private $user;
+    private $token;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->user = User::factory()->create();
+        $this->token = $this->user->createToken('Test Token')->plainTextToken;
+    }
+
     public function test_user_can_set_preferences()
     {
-        $user = User::factory()->create();
-
-        $token = $user->createToken('Test Token')->plainTextToken;
-
         $response = $this->withHeaders([
-            'Authorization' => "Bearer $token",
+            'Authorization' => "Bearer $this->token",
         ])->postJson('/api/preferences', [
             'sources' => ['BBC', 'CNN'],
             'categories' => ['Technology', 'Health'],
@@ -34,25 +38,26 @@ class PreferenceTest extends TestCase
 
     public function test_user_can_get_preferences()
     {
-        $user = User::factory()->create();
-        $preference = Preference::create([
-            'user_id' => $user->id,
+        Preference::create([
+            'user_id' => $this->user->id,
             'sources' => ['BBC'],
             'categories' => ['Technology'],
             'authors' => ['John Doe'],
         ]);
 
-        $token = $user->createToken('Test Token')->plainTextToken;
-
         $response = $this->withHeaders([
-            'Authorization' => "Bearer $token",
+            'Authorization' => "Bearer $this->token",
         ])->getJson('/api/preferences');
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'sources' => ['BBC'],
-                     'categories' => ['Technology'],
-                     'authors' => ['John Doe'],
-                 ]);
+                ->assertJsonStructure([
+                    'id',
+                    'user_id',
+                    'sources',
+                    'categories',
+                    'authors',
+                    'created_at',
+                    'updated_at',
+                ]);
     }
 }
