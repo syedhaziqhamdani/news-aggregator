@@ -53,35 +53,35 @@ class ArticleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Article::query();
+        try {
+            $query = Article::query();
 
-        if ($request->filled('keyword')) {
-            $query->where('title', 'LIKE', "%{$request->keyword}%");
+            if ($request->filled('keyword')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'LIKE', "%{$request->keyword}%")
+                        ->orWhere('description', 'LIKE', "%{$request->keyword}%");
+                });
+            }
+
+            if ($request->filled('category')) {
+                $query->where('category', $request->category);
+            }
+
+            if ($request->filled('source')) {
+                $query->where('source', $request->source);
+            }
+
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('published_at', [$request->start_date, $request->end_date]);
+            }
+
+            $articles = $query->paginate(10);
+
+            // Wrap the response in the resource
+            return new ArticleCollection($articles);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch articles', 'details' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-
-        if ($request->filled('source')) {
-            $query->where('source', $request->source);
-        }
-
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $query->whereBetween('published_at', [$request->start_date, $request->end_date]);
-        }
-
-        if ($request->filled('keyword')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'LIKE', "%{$request->keyword}%")
-                  ->orWhere('description', 'LIKE', "%{$request->keyword}%");
-            });
-        }
-
-        $articles = $query->paginate(10);
-
-        // Wrap the response in the resource
-        return new ArticleCollection($articles);
     }
     /**
      * @OA\Get(
@@ -113,37 +113,41 @@ class ArticleController extends Controller
      */
     public function personalizedFeed(Request $request)
     {
-        $user = Auth::user();
-        $preferences = UserPreference::where('user_id', $user->id)->first();
+        try {
+            $user = Auth::user();
+            $preferences = UserPreference::where('user_id', $user->id)->first();
 
-        if (!$preferences) {
-            return response()->json(['message' => 'No preferences found.'], 404);
+            if (!$preferences) {
+                return response()->json(['message' => 'No preferences found.'], 404);
+            }
+
+            $query = Article::query();
+
+            if (!empty($preferences->sources)) {
+                $query->whereIn('source', $preferences->sources);
+            }
+
+            if (!empty($preferences->categories)) {
+                $query->whereIn('category', $preferences->categories);
+            }
+
+            if (!empty($preferences->authors)) {
+                $query->whereIn('author', $preferences->authors);
+            }
+
+            if ($request->filled('keyword')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'LIKE', "%{$request->keyword}%")
+                    ->orWhere('description', 'LIKE', "%{$request->keyword}%");
+                });
+            }
+
+            $articles = $query->paginate(10);
+
+            return response()->json($articles);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch personalized news feed', 'details' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $query = Article::query();
-
-        if (!empty($preferences->sources)) {
-            $query->whereIn('source', $preferences->sources);
-        }
-
-        if (!empty($preferences->categories)) {
-            $query->whereIn('category', $preferences->categories);
-        }
-
-        if (!empty($preferences->authors)) {
-            $query->whereIn('author', $preferences->authors);
-        }
-
-        if ($request->filled('keyword')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'LIKE', "%{$request->keyword}%")
-                ->orWhere('description', 'LIKE', "%{$request->keyword}%");
-            });
-        }
-
-        $articles = $query->paginate(10);
-
-        return response()->json($articles);
     }
     /**
      * @OA\Get(
@@ -170,8 +174,14 @@ class ArticleController extends Controller
      */
     public function show($id)
     {
-        $article = Article::findOrFail($id);
+        try {
+            $article = Article::findOrFail($id);
 
-        return response()->json($article);
+            return response()->json($article);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Article not found'], Response::HTTP_NOT_FOUND);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch article details', 'details' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }
