@@ -42,6 +42,40 @@ class ArticleController extends Controller
         return new ArticleCollection($articles);
     }
 
+    public function personalizedFeed(Request $request)
+    {
+        $user = Auth::user();
+        $preferences = UserPreference::where('user_id', $user->id)->first();
+
+        if (!$preferences) {
+            return response()->json(['message' => 'No preferences found.'], 404);
+        }
+
+        $query = Article::query();
+
+        if (!empty($preferences->sources)) {
+            $query->whereIn('source', $preferences->sources);
+        }
+
+        if (!empty($preferences->categories)) {
+            $query->whereIn('category', $preferences->categories);
+        }
+
+        if (!empty($preferences->authors)) {
+            $query->whereIn('author', $preferences->authors);
+        }
+
+        if ($request->filled('keyword')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('title', 'LIKE', "%{$request->keyword}%")
+                ->orWhere('description', 'LIKE', "%{$request->keyword}%");
+            });
+        }
+
+        $articles = $query->paginate(10);
+
+        return response()->json($articles);
+    }
 
     public function show($id)
     {
