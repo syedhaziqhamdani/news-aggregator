@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use Illuminate\Support\Facades\Http;
+use App\Services\NewsApiService;
 
 class NewsApiServiceTest extends TestCase
 {
@@ -25,12 +26,13 @@ class NewsApiServiceTest extends TestCase
         ]);
 
         // Test the service
-        $service = new \App\Services\NewsApiService();
+        $service = new NewsApiService();
         $articles = $service->fetchArticles(['q' => 'technology']);
 
         // Validate the response
         $this->assertNotEmpty($articles);
         $this->assertEquals('Test Article', $articles[0]['title']);
+        $this->assertEquals('https://example.com/article1', $articles[0]['url']);
     }
 
     public function test_fetch_articles_failure()
@@ -44,7 +46,7 @@ class NewsApiServiceTest extends TestCase
         $this->expectExceptionMessage('NewsAPI request failed with status 500');
 
         // Test the service
-        $service = new \App\Services\NewsApiService();
+        $service = new NewsApiService();
         $service->fetchArticles(['q' => 'technology']);
     }
 }

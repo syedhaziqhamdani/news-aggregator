@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('url')->unique();
-            $table->string('source');
+            $table->string('source')->default('');
             $table->string('category')->nullable();
             $table->timestamps();
         });

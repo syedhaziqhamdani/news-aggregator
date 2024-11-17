@@ -27,7 +27,15 @@ class ArticleAggregatorService
         try {
             Log::info('Fetching articles from NewsAPI...');
             $newsApiArticles = $this->newsApiService->fetchArticles($params);
-            $articles = array_merge($articles, $newsApiArticles);
+            foreach ($newsApiArticles as $article) {
+                $articles[] = [
+                    'url' => $article['url'] ?? null,
+                    'title' => $article['title'] ?? null,
+                    'description' => $article['description'] ?? null,
+                    'source' => $article['source']['name'] ?? '',
+                    'published_at' => $article['publishedAt'] ?? null,
+                ];
+            }
         } catch (\Exception $e) {
             \Log::error('Error fetching from NewsAPI', ['error' => $e->getMessage()]);
         }
@@ -36,7 +44,15 @@ class ArticleAggregatorService
         try {
             Log::info('Fetching articles from The Guardian...');
             $guardianArticles = $this->guardianApiService->fetchArticles($params);
-            $articles = array_merge($articles, $guardianArticles);
+            foreach ($guardianArticles as $article) {
+                $articles[] = [
+                    'url' => $article['webUrl'] ?? null,
+                    'title' => $article['webTitle'] ?? null,
+                    'description' => $article['fields']['trailText'] ?? null,
+                    'source' => 'The Guardian',
+                    'published_at' => $article['webPublicationDate'] ?? null,
+                ];
+            }
         } catch (\Exception $e) {
             \Log::error('Error fetching from The Guardian', ['error' => $e->getMessage()]);
         }
@@ -45,14 +61,21 @@ class ArticleAggregatorService
         try {
             Log::info('Fetching articles from The New York Times...');
             $nytArticles = $this->nytApiService->fetchArticles($params);
-            $articles = array_merge($articles, $nytArticles);
+            foreach ($nytArticles as $article) {
+                $articles[] = [
+                    'url' => $article['web_url'] ?? null,
+                    'title' => $article['headline']['main'] ?? null,
+                    'description' => $article['snippet'] ?? null,
+                    'source' => 'New York Times',
+                    'published_at' => $article['pub_date'] ?? null,
+                ];
+            }
         } catch (\Exception $e) {
             \Log::error('Error fetching from The New York Times', ['error' => $e->getMessage()]);
         }
 
         Log::info('Total articles fetched from all sources', ['total_count' => count($articles)]);
 
-        
         return $articles;
     }
 }

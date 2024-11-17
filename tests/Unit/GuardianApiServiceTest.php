@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use Illuminate\Support\Facades\Http;
+use App\Services\GuardianApiService;
 
 class GuardianApiServiceTest extends TestCase
 {
@@ -25,11 +26,12 @@ class GuardianApiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new \App\Services\GuardianApiService();
+        $service = new GuardianApiService();
         $articles = $service->fetchArticles(['q' => 'technology']);
 
         $this->assertNotEmpty($articles);
         $this->assertEquals('Test Guardian Article', $articles[0]['title']);
+        $this->assertEquals('https://example.com/article1', $articles[0]['url']);
     }
 
     public function test_fetch_articles_failure()
@@ -41,7 +43,7 @@ class GuardianApiServiceTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('The Guardian API request failed');
 
-        $service = new \App\Services\GuardianApiService();
+        $service = new GuardianApiService();
         $service->fetchArticles(['q' => 'technology']);
     }
 }

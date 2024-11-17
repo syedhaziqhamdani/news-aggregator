@@ -35,7 +35,7 @@ class NewsApiService
 
             $responseData = $response->json();
 
-            if (is_null($articles)) {
+            if (!isset($responseData['articles'])) {
                 Log::warning('No articles key found in NewsAPI response', [
                     'response_body' => $response->body(),
                     'params' => $params,
@@ -43,20 +43,23 @@ class NewsApiService
                 throw new \Exception('NewsAPI response does not contain articles.');
             }
 
+            $articles = $responseData['articles'];
+
             Log::info('Fetched articles successfully from NewsAPI', [
                 'articles_count' => count($articles),
                 'params' => $params,
             ]);
 
-            return collect($responseData['response']['docs'] ?? [])->map(function ($article) {
+            // Map the articles into a consistent format
+            return array_map(function ($article) {
                 return [
-                    'title' => $article['headline']['main'] ?? null,
-                    'description' => $article['snippet'] ?? null,
-                    'source' => 'New York Times',
-                    'url' => $article['web_url'] ?? null,
-                    'published_at' => $article['pub_date'] ?? null,
+                    'title' => $article['title'] ?? null,
+                    'description' => $article['description'] ?? null,
+                    'source' => $article['source']['name'] ?? 'Unknown Source',
+                    'url' => $article['url'] ?? null,
+                    'published_at' => $article['publishedAt'] ?? null,
                 ];
-            })->toArray();
+            }, $articles);
         } catch (\Exception $e) {
             Log::critical('An unexpected error occurred in NewsApiService', [
                 'error_message' => $e->getMessage(),

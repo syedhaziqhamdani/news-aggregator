@@ -17,20 +17,39 @@ class NytApiService
 
     public function fetchArticles(array $params)
     {
+        // Make the API request
         $response = Http::withOptions(['verify' => false])
             ->get("{$this->baseUrl}/articlesearch.json", array_merge($params, [
                 'api-key' => $this->apiKey,
             ]));
 
+        // Handle response failures
         if ($response->failed()) {
-            throw new \Exception('NYT request failed: ' . $response->body());
+            Log::error('Error fetching articles from New York Times: ' . $response->body());
+            throw new \Exception('NYT API request failed: ' . $response->body());
         }
-        if ($response->failed()) {
-            Log::error('Error fetching articles from NewYork Times: ' . $response->body());
-            throw new \Exception('NewYork Times request failed: ' . $response->body());
+
+        $responseData = $response->json();
+
+        // Validate response structure
+        if (!isset($responseData['response']['docs'])) {
+            Log::error('Unexpected response structure from NYT API', ['response' => $responseData]);
+            throw new \Exception('Unexpected NYT API response structure.');
         }
-    
-        Log::info('Fetched articles successfully from NewYork Times', ['articles_count' => count($response->json()['articles'] ?? [])]);
-        return $response->json()['response']['docs'];
+
+        // Log the successful fetch
+        $articlesCount = count($responseData['response']['docs']);
+        Log::info('Fetched articles successfully from New York Times', ['articles_count' => $articlesCount]);
+
+        // Map the response to a consistent structure
+        return collect($responseData['response']['docs'])->map(function ($article) {
+            return [
+                'title' => $article['headline']['main'] ?? 'No Title',
+                'description' => $article['abstract'] ?? 'No Description',
+                'source' => 'The New York Times',
+                'url' => $article['web_url'] ?? '',
+                'publishedAt' => $article['pub_date'] ?? '',
+            ];
+        })->toArray();
     }
 }

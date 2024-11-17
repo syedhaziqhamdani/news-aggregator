@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
@@ -23,15 +24,22 @@ class GuardianApiService
             ]));
 
         if ($response->failed()) {
-            throw new \Exception('The Guardian request failed: ' . $response->body());
-        }
-        if ($response->failed()) {
             Log::error('Error fetching articles from The Guardian: ' . $response->body());
-            throw new \Exception('The Guardian request failed: ' . $response->body());
+            throw new \Exception('The Guardian API request failed: ' . $response->body());
         }
-    
-        Log::info('Fetched articles successfully from The Guardian', ['articles_count' => count($response->json()['articles'] ?? [])]);
 
-        return $response->json()['response']['results'];
+        $results = $response->json()['response']['results'] ?? [];
+        Log::info('Fetched articles successfully from The Guardian', ['articles_count' => count($results)]);
+
+        // Map API-specific structure to a common structure
+        return array_map(function ($article) {
+            return [
+                'url' => $article['webUrl'] ?? '',
+                'title' => $article['webTitle'] ?? '',
+                'description' => $article['fields']['trailText'] ?? '',
+                'category' => $article['sectionName'] ?? '',
+                'publishedAt' => $article['webPublicationDate'] ?? '',
+            ];
+        }, $results);
     }
 }
