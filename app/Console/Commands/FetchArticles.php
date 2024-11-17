@@ -5,57 +5,61 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\ArticleAggregatorService;
 use App\Models\Article;
+use Carbon\Carbon;
 
 class FetchArticles extends Command
 {
+    protected $signature = 'fetch:articles';
+    protected $description = 'Fetch articles from multiple news sources';
+
     protected $articleAggregatorService;
 
-    /**
-     * Command signature
-     */
-    protected $signature = 'fetch:articles';
-
-    /**
-     * Command description
-     */
-    protected $description = 'Fetch and store articles from various news APIs';
-
-    /**
-     * Constructor
-     */
     public function __construct(ArticleAggregatorService $articleAggregatorService)
     {
         parent::__construct();
         $this->articleAggregatorService = $articleAggregatorService;
     }
 
-    /**
-     * Command logic
-     */
     public function handle()
     {
-        try {
-            $this->info('Fetching articles...');
-            $articles = $this->articleAggregatorService->fetchAllArticles();
+        $this->info('Fetching articles...');
+        $params = [
+            'q' => 'technology',
+            'language' => 'en',
+            'pageSize' => 10,
+        ];
 
-            foreach ($articles as $article) {
+        try {
+            $articles = $this->articleAggregatorService->fetchAllArticles($params);
+
+            foreach ($articles as $articleData) {
+                // Skip articles without a valid URL
+                if (empty($articleData['url'])) {
+                    $this->warn('Skipping article with missing URL.');
+                    continue;
+                }
+
+                $publishedAt = isset($articleData['publishedAt']) 
+                    ? Carbon::parse($articleData['publishedAt'])->toDateTimeString() 
+                    : null;
+
                 Article::updateOrCreate(
-                    ['url' => $article['url']],
+                    ['url' => $articleData['url']],
                     [
-                        'title' => $article['title'],
-                        'description' => $article['description'] ?? null,
-                        'source' => $article['source']['name'] ?? 'Unknown',
-                        'category' => $article['category'] ?? 'general',
+                        'title' => $articleData['title'] ?? 'Untitled',
+                        'description' => $articleData['description'] ?? '',
+                        'source' => $articleData['source']['name'] ?? '',
+                        'category' => 'General',
+                        'published_at' => $publishedAt,
                     ]
                 );
             }
 
-            $this->info('Articles fetched and stored successfully.');
+            $this->info('Articles fetched and stored successfully!');
         } catch (\Exception $e) {
             $this->error('Error: ' . $e->getMessage());
         }
     }
-
     /**
      * Define the command's schedule.
      *
