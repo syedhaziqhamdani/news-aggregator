@@ -32,43 +32,55 @@ class PreferenceController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'sources' => 'array',
-            'categories' => 'array',
-            'authors' => 'array',
-        ]);
+        try {
+            $request->validate([
+                'sources' => 'array',
+                'categories' => 'array',
+                'authors' => 'array',
+            ]);
 
-        $preference = Preference::updateOrCreate(
-            ['user_id' => $request->user()->id],
-            $request->only(['sources', 'categories', 'authors'])
-        );
+            $preference = Preference::updateOrCreate(
+                ['user_id' => $request->user()->id],
+                $request->only(['sources', 'categories', 'authors'])
+            );
 
-        return response()->json(['message' => 'Preferences updated successfully'], 200);
+            return response()->json(['message' => 'Preferences updated successfully'], 200);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => 'Validation error', 'errors' => $e->errors()], 400);
+        } catch (QueryException $e) {
+            return response()->json(['message' => 'Database error', 'error' => $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'An unexpected error occurred', 'error' => $e->getMessage()], 500);
+        }
     }
 
     public function show(Request $request)
     {
-        $preference = Preference::where('user_id', $request->user()->id)->first();
+        try {
+            $preference = Preference::where('user_id', $request->user()->id)->first();
 
-        if (!$preference) {
+            return response()->json($preference);
+        } catch (ModelNotFoundException $e) {
             return response()->json(['message' => 'No preferences found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'An unexpected error occurred', 'error' => $e->getMessage()], 500);
         }
-
-        return response()->json($preference);
     }
     public function getPreferences(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        // Fetch user preferences
-        $preferences = Preference::where('user_id', $user->id)->first();
+            // Fetch user preferences
+            $preferences = Preference::where('user_id', $user->id)->first();
 
-        if (!$preferences) {
+            return response()->json([
+                'data' => $preferences // Wrap the response in a "data" key
+            ], 200);
+        } catch (ModelNotFoundException $e) {
             return response()->json(['message' => 'Preferences not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'An unexpected error occurred', 'error' => $e->getMessage()], 500);
         }
-
-        return response()->json([
-            'data' => $preferences // Wrap the response in a "data" key
-        ], 200);
     }
 }
