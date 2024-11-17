@@ -25,6 +25,17 @@ class ArticleController extends Controller
             $query->where('source', $request->source);
         }
 
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('published_at', [$request->start_date, $request->end_date]);
+        }
+
+        if ($request->filled('keyword')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('title', 'LIKE', "%{$request->keyword}%")
+                  ->orWhere('description', 'LIKE', "%{$request->keyword}%");
+            });
+        }
+
         $articles = $query->paginate(10);
 
         // Wrap the response in the resource
