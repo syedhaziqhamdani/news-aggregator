@@ -6,6 +6,7 @@ use App\Models\Article;
 use Illuminate\Http\Request;
 use App\Http\Resources\ArticleCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use App\Models\UserPreference;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpFoundation\Response;
@@ -58,30 +59,33 @@ class ArticleController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Article::query();
+            $cacheKey = 'articles_index:' . md5(json_encode($request->all()));
 
-            if ($request->filled('keyword')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('title', 'LIKE', "%{$request->keyword}%")
-                        ->orWhere('description', 'LIKE', "%{$request->keyword}%");
-                });
-            }
+            $articles = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+                $query = Article::query();
 
-            if ($request->filled('category')) {
-                $query->where('category', $request->category);
-            }
+                if ($request->filled('keyword')) {
+                    $query->where(function ($q) use ($request) {
+                        $q->where('title', 'LIKE', "%{$request->keyword}%")
+                            ->orWhere('description', 'LIKE', "%{$request->keyword}%");
+                    });
+                }
 
-            if ($request->filled('source')) {
-                $query->where('source', $request->source);
-            }
+                if ($request->filled('category')) {
+                    $query->where('category', $request->category);
+                }
 
-            if ($request->filled('start_date') && $request->filled('end_date')) {
-                $query->whereBetween('published_at', [$request->start_date, $request->end_date]);
-            }
+                if ($request->filled('source')) {
+                    $query->where('source', $request->source);
+                }
 
-            $articles = $query->paginate(10);
+                if ($request->filled('start_date') && $request->filled('end_date')) {
+                    $query->whereBetween('published_at', [$request->start_date, $request->end_date]);
+                }
 
-            // Wrap the response in the resource
+                return $query->paginate(10);
+            });
+
             return new ArticleCollection($articles);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch articles', 'details' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
@@ -125,28 +129,32 @@ class ArticleController extends Controller
                 return response()->json(['message' => 'No preferences found.'], 404);
             }
 
-            $query = Article::query();
+            $cacheKey = 'personalized_feed:' . $user->id . ':' . md5(json_encode($request->all()));
 
-            if (!empty($preferences->sources)) {
-                $query->whereIn('source', $preferences->sources);
-            }
+            $articles = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($preferences, $request) {
+                $query = Article::query();
 
-            if (!empty($preferences->categories)) {
-                $query->whereIn('category', $preferences->categories);
-            }
+                if (!empty($preferences->sources)) {
+                    $query->whereIn('source', $preferences->sources);
+                }
 
-            if (!empty($preferences->authors)) {
-                $query->whereIn('author', $preferences->authors);
-            }
+                if (!empty($preferences->categories)) {
+                    $query->whereIn('category', $preferences->categories);
+                }
 
-            if ($request->filled('keyword')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('title', 'LIKE', "%{$request->keyword}%")
-                    ->orWhere('description', 'LIKE', "%{$request->keyword}%");
-                });
-            }
+                if (!empty($preferences->authors)) {
+                    $query->whereIn('author', $preferences->authors);
+                }
 
-            $articles = $query->paginate(10);
+                if ($request->filled('keyword')) {
+                    $query->where(function ($q) use ($request) {
+                        $q->where('title', 'LIKE', "%{$request->keyword}%")
+                            ->orWhere('description', 'LIKE', "%{$request->keyword}%");
+                    });
+                }
+
+                return $query->paginate(10);
+            });
 
             return response()->json($articles);
         } catch (\Exception $e) {
@@ -179,7 +187,11 @@ class ArticleController extends Controller
     public function show($id)
     {
         try {
-            $article = Article::findOrFail($id);
+            $cacheKey = 'article_details:' . $id;
+
+            $article = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($id) {
+                return Article::findOrFail($id);
+            });
 
             return response()->json($article);
         } catch (ModelNotFoundException $e) {
