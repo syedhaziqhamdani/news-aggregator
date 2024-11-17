@@ -12,6 +12,7 @@ class FetchArticlesTest extends TestCase
 
     public function test_articles_are_fetched_and_stored()
     {
+        Article::truncate();
         // Mock the fetchAllArticles method in ArticleAggregatorService to return test data
         $this->mock(\App\Services\ArticleAggregatorService::class, function ($mock) {
             $mock->shouldReceive('fetchAllArticles')
