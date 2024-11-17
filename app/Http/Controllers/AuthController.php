@@ -44,19 +44,23 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8',
+            ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        return response()->json(['token' => $user->createToken('API Token')->plainTextToken], 201);
+            return response()->json(['token' => $user->createToken('API Token')->plainTextToken], 201);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred during registration.', 'error' => $e->getMessage()], 500);
+        }
     }
     /**
      * @OA\Post(
@@ -88,19 +92,23 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->only(['email', 'password']);
+        try {
+            $credentials = $request->only(['email', 'password']);
 
-        // Validate credentials
-        $user = User::where('email', $credentials['email'])->first();
+            // Validate credentials
+            $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            if (!$user || !Hash::check($credentials['password'], $user->password)) {
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+
+            // Generate token
+            $token = $user->createToken('API Token')->plainTextToken;
+
+            return response()->json(['token' => $token], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred during login.', 'error' => $e->getMessage()], 500);
         }
-
-        // Generate token
-        $token = $user->createToken('API Token')->plainTextToken;
-
-        return response()->json(['token' => $token], 200);
     }
     /**
      * @OA\Post(
@@ -124,8 +132,16 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            if ($request->user()) {
+                $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully']);
+                return response()->json(['message' => 'Logged out successfully']);
+            } else {
+                return response()->json(['message' => 'No authenticated user found.'], 401);
+            }
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred during logout.', 'error' => $e->getMessage()], 500);
+        }
     }
 }

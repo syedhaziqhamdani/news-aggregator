@@ -3,6 +3,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Preference;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PreferenceController extends Controller
 {

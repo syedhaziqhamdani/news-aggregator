@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Article;
 use Illuminate\Http\Request;
 use App\Http\Resources\ArticleCollection;
+use Illuminate\Support\Facades\Auth;
+use App\Models\UserPreference;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @OA\Tag(
