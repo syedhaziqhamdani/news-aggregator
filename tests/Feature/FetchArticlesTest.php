@@ -10,6 +10,35 @@ class FetchArticlesTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_fetch_articles_command()
+    {
+        Article::truncate();
+        $this->mock(\App\Services\ArticleAggregatorService::class, function ($mock) {
+            $mock->shouldReceive('fetchAllArticles')
+                 ->once()
+                 ->andReturn([
+                     [
+                         'url' => 'https://example.com/article1',
+                         'title' => 'Test Article 1',
+                         'description' => 'Description for Test Article 1',
+                         'source' => 'Test Source',
+                         'publishedAt' => '2024-11-17T12:00:00Z',
+                     ]
+                 ]);
+        });
+
+        $this->artisan('fetch:articles')
+             ->expectsOutput('Fetching articles...')
+             ->expectsOutput('Articles fetched and stored successfully!')
+             ->assertExitCode(0);
+
+        $this->assertDatabaseHas('articles', [
+            'title' => 'Test Article 1',
+            'source' => 'Test Source',
+        ]);
+
+        $this->assertDatabaseCount('articles', 1);
+    }
     public function test_articles_are_fetched_and_stored()
     {
         Article::truncate();

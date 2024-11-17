@@ -74,4 +74,47 @@ class ArticleTest extends TestCase
         $response->assertStatus(200)
                  ->assertJsonStructure(['id', 'title', 'description', 'url', 'source', 'category']);
     }
+
+    public function test_fetch_articles_with_pagination()
+    {
+        Article::factory()->count(15)->create();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer $this->token",
+        ])->getJson('/api/articles?page=2');
+
+        $response->assertStatus(200)
+                 ->assertJsonStructure(['data', 'links', 'meta']);
+    }
+
+    public function test_filter_articles_by_invalid_category()
+    {
+        Article::factory()->create(['category' => 'Technology']);
+        Article::factory()->create(['category' => 'Health']);
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer $this->token",
+        ])->getJson('/api/articles?category=InvalidCategory');
+
+        $response->assertStatus(200)
+                 ->assertJsonCount(0, 'data');
+    }
+
+    public function test_unauthorized_access_to_articles()
+    {
+        $response = $this->getJson('/api/articles');
+
+        $response->assertStatus(401)
+                 ->assertJson(['message' => 'Unauthenticated.']);
+    }
+
+    public function test_view_single_article_not_found()
+    {
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer $this->token",
+        ])->getJson('/api/articles/9999');
+
+        $response->assertStatus(404)
+                ->assertJson(['error' => 'Article not found']);
+    }
 }
