@@ -65,6 +65,9 @@
                             }
                         }
                     },
+                    "429": {
+                        "description": "Too many requests"
+                    },
                     "401": {
                         "description": "Unauthorized"
                     }
